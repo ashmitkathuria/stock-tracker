@@ -38,14 +38,18 @@ export function PriceCard({ symbol, price, change, prediction = null, loading = 
             <span className={`text-xs font-bold px-2 py-1 rounded ${
               prediction.signal === 'UP'
                 ? 'bg-green-100 text-green-700'
-                : 'bg-red-100 text-red-700'
+                : prediction.signal === 'DOWN'
+                  ? 'bg-red-100 text-red-700'
+                  : 'bg-gray-100 text-gray-500'
             }`}>
-              {prediction.signal} {(prediction.confidence * 100).toFixed(0)}%
+              {prediction.signal === 'NEUTRAL'
+                ? 'NEUTRAL'
+                : `${prediction.signal} ${(prediction.confidence * 100).toFixed(0)}%`}
             </span>
           </div>
           <div className="mt-2 flex items-center gap-1 text-xs text-gray-500">
             <Info className="w-3 h-3" />
-            <span>ML-based price direction forecast</span>
+            <span>ML forecast — educational, not trading advice</span>
           </div>
         </div>
       )}
