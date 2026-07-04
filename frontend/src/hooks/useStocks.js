@@ -44,28 +44,31 @@ export function useFetchStockPrice() {
   })
 }
 
-// Add to watchlist (placeholder)
+// Watchlist with latest prices
+export function useWatchlist() {
+  return useQuery({
+    queryKey: ['watchlist'],
+    queryFn: () => apiClient.get('/watchlist'),
+    staleTime: 60000,
+  })
+}
+
+// Add to watchlist
 export function useAddToWatchlist() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (symbol) => {
-      // Placeholder: will connect to backend in Phase 2
-      return { symbol, status: 'added' }
-    },
+    mutationFn: (symbol) => apiClient.post('/watchlist', { symbol }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['watchlist'] })
     }
   })
 }
 
-// Remove from watchlist (placeholder)
+// Remove from watchlist
 export function useRemoveFromWatchlist() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (symbol) => {
-      // Placeholder: will connect to backend in Phase 2
-      return { symbol, status: 'removed' }
-    },
+    mutationFn: (symbol) => apiClient.delete(`/watchlist/${symbol}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['watchlist'] })
     }

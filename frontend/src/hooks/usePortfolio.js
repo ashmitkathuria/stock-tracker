@@ -1,34 +1,45 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '../config/api'
 
-// Fetch portfolio holdings (placeholder)
+// Fetch portfolio holdings with live valuations
 export function usePortfolio() {
   return useQuery({
     queryKey: ['portfolio'],
-    queryFn: async () => {
-      // Placeholder: returns mock data for now
-      return {
-        status: 'success',
-        holdings: [],
-        totalValue: 0,
-        totalCost: 0,
-        gainLoss: 0
-      }
-    },
-    staleTime: 300000,
+    queryFn: () => apiClient.get('/portfolio'),
+    staleTime: 60000,
   })
 }
 
-// Add holding (placeholder)
+// Add (or merge) a holding — also records a BUY trade
 export function useAddHolding() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (holdingData) => {
-      // Placeholder: will connect to backend in Phase 2
-      return { status: 'success', holding: holdingData }
-    },
+    mutationFn: (holdingData) => apiClient.post('/portfolio', holdingData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['portfolio'] })
-    }
+      queryClient.invalidateQueries({ queryKey: ['trades'] })
+    },
+  })
+}
+
+// Sell part or all of a holding
+export function useSellHolding() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ symbol, quantity, price }) =>
+      apiClient.post(`/portfolio/${symbol}/sell`, { quantity, price }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['portfolio'] })
+      queryClient.invalidateQueries({ queryKey: ['trades'] })
+    },
+  })
+}
+
+// Trade history
+export function useTrades() {
+  return useQuery({
+    queryKey: ['trades'],
+    queryFn: () => apiClient.get('/portfolio/trades'),
+    staleTime: 60000,
   })
 }
