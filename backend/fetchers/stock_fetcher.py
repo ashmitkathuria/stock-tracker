@@ -148,6 +148,73 @@ def fetch_historical_data(symbol: str, exchange: str = "NSE", days: int = 365) -
             "message": str(e)
         }
 
+def backfill_history(symbol: str, exchange: str = "NSE", days: int = 400, db: Session = None) -> dict:
+    """
+    Backfill daily OHLCV history into stock_prices, upserting on (symbol, date).
+
+    Args:
+        symbol: Stock symbol
+        exchange: Exchange code
+        days: Calendar days of history to fetch (default ~1 year of sessions)
+        db: Database session (reused if provided)
+
+    Returns:
+        dict with status and counts of inserted/updated rows
+    """
+    owns_session = db is None
+    if owns_session:
+        db = SessionLocal()
+
+    try:
+        yf_symbol = f"{symbol}.{'BO' if exchange == 'BSE' else 'NS'}"
+        logger.info(f"Backfilling {days} days of history for {symbol}")
+
+        data = yf.download(yf_symbol, period=f"{days}d", progress=False, multi_level_index=False)
+
+        if data.empty:
+            return {"status": "error", "symbol": symbol, "message": f"No historical data for {symbol}"}
+
+        dates = [d.date() for d in data.index]
+        existing_dates = {
+            row.date for row in db.query(StockPrice.date).filter(
+                StockPrice.symbol == symbol,
+                StockPrice.date >= min(dates),
+                StockPrice.date <= max(dates),
+            ).all()
+        }
+
+        inserted = updated = 0
+        for date, row in data.iterrows():
+            day = date.date()
+            values = {
+                "open": Decimal(str(round(float(row['Open']), 2))),
+                "high": Decimal(str(round(float(row['High']), 2))),
+                "low": Decimal(str(round(float(row['Low']), 2))),
+                "close": Decimal(str(round(float(row['Close']), 2))),
+                "volume": int(row['Volume']) if row['Volume'] == row['Volume'] else None,
+            }
+            if day in existing_dates:
+                db.query(StockPrice).filter(
+                    StockPrice.symbol == symbol, StockPrice.date == day
+                ).update(values)
+                updated += 1
+            else:
+                db.add(StockPrice(symbol=symbol, date=day, **values))
+                inserted += 1
+
+        db.commit()
+        logger.info(f"Backfill {symbol}: {inserted} inserted, {updated} updated")
+        return {"status": "success", "symbol": symbol, "inserted": inserted, "updated": updated}
+
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error backfilling {symbol}: {str(e)}")
+        return {"status": "error", "symbol": symbol, "message": str(e)}
+
+    finally:
+        if owns_session:
+            db.close()
+
 def fetch_multiple_stocks(symbols: list, exchange: str = "NSE") -> dict:
     """
     Fetch prices for multiple stocks.
