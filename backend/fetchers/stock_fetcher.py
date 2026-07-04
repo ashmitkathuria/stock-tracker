@@ -148,15 +148,29 @@ def fetch_historical_data(symbol: str, exchange: str = "NSE", days: int = 365) -
             "message": str(e)
         }
 
-def backfill_history(symbol: str, exchange: str = "NSE", days: int = 400, db: Session = None) -> dict:
+# Market-context index series stored in stock_prices under friendly symbols
+INDEX_TICKERS = {
+    "NIFTY50": "^NSEI",
+    "INDIAVIX": "^INDIAVIX",
+}
+
+def _to_yf_symbol(symbol: str, exchange: str = "NSE") -> str:
+    if symbol in INDEX_TICKERS:
+        return INDEX_TICKERS[symbol]
+    return f"{symbol}.{'BO' if exchange == 'BSE' else 'NS'}"
+
+def backfill_history(symbol: str, exchange: str = "NSE", days: int = None,
+                     period: str = "10y", db: Session = None, chunk_size: int = 500) -> dict:
     """
     Backfill daily OHLCV history into stock_prices, upserting on (symbol, date).
 
     Args:
-        symbol: Stock symbol
+        symbol: Stock symbol (or NIFTY50 / INDIAVIX index aliases)
         exchange: Exchange code
-        days: Calendar days of history to fetch (default ~1 year of sessions)
+        days: Calendar days of history (overrides period when given)
+        period: yfinance period string, default 10 years
         db: Database session (reused if provided)
+        chunk_size: rows per commit to keep transactions small
 
     Returns:
         dict with status and counts of inserted/updated rows
@@ -166,10 +180,11 @@ def backfill_history(symbol: str, exchange: str = "NSE", days: int = 400, db: Se
         db = SessionLocal()
 
     try:
-        yf_symbol = f"{symbol}.{'BO' if exchange == 'BSE' else 'NS'}"
-        logger.info(f"Backfilling {days} days of history for {symbol}")
+        yf_symbol = _to_yf_symbol(symbol, exchange)
+        yf_period = f"{days}d" if days else period
+        logger.info(f"Backfilling {yf_period} of history for {symbol}")
 
-        data = yf.download(yf_symbol, period=f"{days}d", progress=False, multi_level_index=False)
+        data = yf.download(yf_symbol, period=yf_period, progress=False, multi_level_index=False)
 
         if data.empty:
             return {"status": "error", "symbol": symbol, "message": f"No historical data for {symbol}"}
@@ -183,14 +198,17 @@ def backfill_history(symbol: str, exchange: str = "NSE", days: int = 400, db: Se
             ).all()
         }
 
-        inserted = updated = 0
+        inserted = updated = pending = 0
         for date, row in data.iterrows():
             day = date.date()
+            close = row['Close']
+            if close != close:  # NaN row (holiday padding etc.)
+                continue
             values = {
                 "open": Decimal(str(round(float(row['Open']), 2))),
                 "high": Decimal(str(round(float(row['High']), 2))),
                 "low": Decimal(str(round(float(row['Low']), 2))),
-                "close": Decimal(str(round(float(row['Close']), 2))),
+                "close": Decimal(str(round(float(close), 2))),
                 "volume": int(row['Volume']) if row['Volume'] == row['Volume'] else None,
             }
             if day in existing_dates:
@@ -201,6 +219,10 @@ def backfill_history(symbol: str, exchange: str = "NSE", days: int = 400, db: Se
             else:
                 db.add(StockPrice(symbol=symbol, date=day, **values))
                 inserted += 1
+            pending += 1
+            if pending >= chunk_size:
+                db.commit()
+                pending = 0
 
         db.commit()
         logger.info(f"Backfill {symbol}: {inserted} inserted, {updated} updated")

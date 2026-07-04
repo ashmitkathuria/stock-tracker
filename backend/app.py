@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from config import settings
 from database import init_db, verify_db_connection
 from scheduler import start_scheduler, stop_scheduler
-from routers import auth, health, news, portfolio, predictions, sectors, stocks, watchlist
+from routers import admin, auth, health, news, portfolio, predictions, sectors, stocks, watchlist
 
 # Configure logging
 logging.basicConfig(
@@ -90,6 +90,7 @@ app.include_router(stocks.router)
 app.include_router(predictions.router)
 app.include_router(news.router)
 app.include_router(sectors.router)
+app.include_router(admin.router)
 
 @app.get("/")
 async def root():
