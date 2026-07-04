@@ -27,11 +27,29 @@ def get_db():
     finally:
         db.close()
 
+# Additive-only migrations for tables that create_all won't alter.
+# Each statement runs in its own transaction and failures are non-fatal
+# (e.g. column already exists on sqlite, which lacks IF NOT EXISTS).
+_MIGRATIONS = [
+    "ALTER TABLE predictions ALTER COLUMN signal TYPE VARCHAR(10)",  # NEUTRAL needs >5 chars (Postgres only)
+    "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS signal_5d VARCHAR(10)",
+    "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS prob_up_5d NUMERIC(3, 2)",
+]
+
+def _run_migrations():
+    for stmt in _MIGRATIONS:
+        try:
+            with engine.begin() as connection:
+                connection.execute(text(stmt))
+        except Exception as e:
+            logger.debug(f"Migration skipped ({stmt}): {str(e)}")
+
 def init_db():
     """Initialize database - create all tables"""
     try:
         logger.info("Creating database tables...")
         Base.metadata.create_all(bind=engine)
+        _run_migrations()
         logger.info("Database initialization complete")
     except Exception as e:
         logger.error(f"Error initializing database: {str(e)}")

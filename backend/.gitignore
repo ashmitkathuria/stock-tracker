@@ -37,3 +37,7 @@ wheels/
 .DS_Store
 models/*.pkl
 models/*.joblib
+
+# ML artifacts
+ml/model_artifact.pkl
+*.pkl

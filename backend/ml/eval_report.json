@@ -1,0 +1,201 @@
+{
+  "generated_at": "2026-07-04T11:18:30.679946",
+  "target": "target_1d",
+  "backend": "sklearn",
+  "n_folds": 8,
+  "folds": [
+    {
+      "train_end": "2019-12-27",
+      "test_start": "2019-12-30",
+      "test_end": "2020-06-26",
+      "n_train": 2952,
+      "n_test": 488,
+      "model": {
+        "accuracy": 0.4775,
+        "brier": 0.2899,
+        "log_loss": 0.7903
+      },
+      "old_logreg": {
+        "accuracy": 0.4816,
+        "brier": 0.2609,
+        "log_loss": 0.7156
+      },
+      "always_up": {
+        "accuracy": 0.502,
+        "brier": 0.2508,
+        "log_loss": 0.6947
+      }
+    },
+    {
+      "train_end": "2020-06-26",
+      "test_start": "2020-06-29",
+      "test_end": "2020-12-24",
+      "n_train": 3440,
+      "n_test": 508,
+      "model": {
+        "accuracy": 0.5079,
+        "brier": 0.2859,
+        "log_loss": 0.7838
+      },
+      "old_logreg": {
+        "accuracy": 0.5315,
+        "brier": 0.2513,
+        "log_loss": 0.6958
+      },
+      "always_up": {
+        "accuracy": 0.5591,
+        "brier": 0.2476,
+        "log_loss": 0.6883
+      }
+    },
+    {
+      "train_end": "2020-12-24",
+      "test_start": "2020-12-28",
+      "test_end": "2021-06-25",
+      "n_train": 3948,
+      "n_test": 492,
+      "model": {
+        "accuracy": 0.5122,
+        "brier": 0.2757,
+        "log_loss": 0.7538
+      },
+      "old_logreg": {
+        "accuracy": 0.5285,
+        "brier": 0.2493,
+        "log_loss": 0.6917
+      },
+      "always_up": {
+        "accuracy": 0.5285,
+        "brier": 0.2492,
+        "log_loss": 0.6915
+      }
+    },
+    {
+      "train_end": "2021-06-25",
+      "test_start": "2021-06-28",
+      "test_end": "2021-12-27",
+      "n_train": 4440,
+      "n_test": 500,
+      "model": {
+        "accuracy": 0.496,
+        "brier": 0.2746,
+        "log_loss": 0.7499
+      },
+      "old_logreg": {
+        "accuracy": 0.536,
+        "brier": 0.248,
+        "log_loss": 0.6891
+      },
+      "always_up": {
+        "accuracy": 0.544,
+        "brier": 0.2483,
+        "log_loss": 0.6897
+      }
+    },
+    {
+      "train_end": "2021-12-27",
+      "test_start": "2021-12-28",
+      "test_end": "2022-06-27",
+      "n_train": 4940,
+      "n_test": 496,
+      "model": {
+        "accuracy": 0.5081,
+        "brier": 0.277,
+        "log_loss": 0.7605
+      },
+      "old_logreg": {
+        "accuracy": 0.496,
+        "brier": 0.2514,
+        "log_loss": 0.696
+      },
+      "always_up": {
+        "accuracy": 0.4919,
+        "brier": 0.2515,
+        "log_loss": 0.6962
+      }
+    },
+    {
+      "train_end": "2022-06-27",
+      "test_start": "2022-06-28",
+      "test_end": "2022-12-27",
+      "n_train": 5436,
+      "n_test": 500,
+      "model": {
+        "accuracy": 0.57,
+        "brier": 0.2469,
+        "log_loss": 0.6886
+      },
+      "old_logreg": {
+        "accuracy": 0.53,
+        "brier": 0.2485,
+        "log_loss": 0.6902
+      },
+      "always_up": {
+        "accuracy": 0.53,
+        "brier": 0.2491,
+        "log_loss": 0.6914
+      }
+    },
+    {
+      "train_end": "2022-12-27",
+      "test_start": "2022-12-28",
+      "test_end": "2023-06-27",
+      "n_train": 5936,
+      "n_test": 492,
+      "model": {
+        "accuracy": 0.5528,
+        "brier": 0.2546,
+        "log_loss": 0.7088
+      },
+      "old_logreg": {
+        "accuracy": 0.5102,
+        "brier": 0.2513,
+        "log_loss": 0.6958
+      },
+      "always_up": {
+        "accuracy": 0.5102,
+        "brier": 0.2502,
+        "log_loss": 0.6936
+      }
+    },
+    {
+      "train_end": "2023-06-27",
+      "test_start": "2023-06-28",
+      "test_end": "2023-12-27",
+      "n_train": 6428,
+      "n_test": 492,
+      "model": {
+        "accuracy": 0.5264,
+        "brier": 0.2657,
+        "log_loss": 0.7282
+      },
+      "old_logreg": {
+        "accuracy": 0.5244,
+        "brier": 0.2497,
+        "log_loss": 0.6925
+      },
+      "always_up": {
+        "accuracy": 0.5183,
+        "brier": 0.2497,
+        "log_loss": 0.6926
+      }
+    }
+  ],
+  "mean": {
+    "model": {
+      "accuracy": 0.5189,
+      "brier": 0.2713,
+      "log_loss": 0.7455
+    },
+    "old_logreg": {
+      "accuracy": 0.5173,
+      "brier": 0.2513,
+      "log_loss": 0.6958
+    },
+    "always_up": {
+      "accuracy": 0.523,
+      "brier": 0.2495,
+      "log_loss": 0.6923
+    }
+  }
+}

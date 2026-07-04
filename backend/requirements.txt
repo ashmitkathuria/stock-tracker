@@ -17,3 +17,4 @@ pytz>=2024.1
 requests>=2.31.0
 pydantic[email]>=2.5.0
 vaderSentiment>=3.3.2
+lightgbm>=4.3.0

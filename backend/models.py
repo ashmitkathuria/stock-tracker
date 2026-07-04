@@ -93,15 +93,35 @@ class Prediction(Base):
     id = Column(Integer, primary_key=True, index=True)
     symbol = Column(String(10), nullable=False, index=True)
     prediction_date = Column(Date, nullable=False)
-    signal = Column(String(5), nullable=False)  # UP or DOWN
+    signal = Column(String(10), nullable=False)  # UP / DOWN / NEUTRAL
     confidence = Column(Numeric(3, 2))
     prob_up = Column(Numeric(3, 2))
+    # 5-day horizon head (additive columns; migrated in init_db for live DBs)
+    signal_5d = Column(String(10))
+    prob_up_5d = Column(Numeric(3, 2))
     volatility_forecast = Column(Numeric(5, 4))
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     __table_args__ = (
         UniqueConstraint("symbol", "prediction_date", name="uq_symbol_pred_date"),
         Index("idx_symbol_pred_date", "symbol", "prediction_date"),
+    )
+
+class PredictionOutcome(Base):
+    __tablename__ = "prediction_outcomes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    symbol = Column(String(10), nullable=False, index=True)
+    prediction_date = Column(Date, nullable=False)
+    signal = Column(String(10), nullable=False)
+    prob_up = Column(Numeric(3, 2))
+    actual_direction = Column(String(5))  # UP or DOWN (realized)
+    hit = Column(Boolean)  # NULL for NEUTRAL predictions (not scored)
+    evaluated_at = Column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("symbol", "prediction_date", name="uq_outcome_symbol_date"),
+        Index("idx_outcome_symbol_date", "symbol", "prediction_date"),
     )
 
 class News(Base):
