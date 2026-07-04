@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useStore } from '../store/store'
+import apiClient from '../config/api'
 
 export function LoginPage() {
   const [username, setUsername] = useState('')
@@ -9,23 +10,28 @@ export function LoginPage() {
   const navigate = useNavigate()
   const { setUser, setToken } = useStore()
 
-  const handleSubmit = (e) => {
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
-    // TODO: Replace with actual API call
     if (!username || !password) {
       setError('Please enter username and password')
       return
     }
 
-    // Simulate login
-    const mockUser = { id: 1, username, email: `${username}@example.com` }
-    const mockToken = 'mock-jwt-token-' + Date.now()
-
-    setUser(mockUser)
-    setToken(mockToken)
-    navigate('/')
+    setLoading(true)
+    try {
+      const res = await apiClient.post('/auth/login', { username, password })
+      setUser(res.user)
+      setToken(res.token)
+      navigate('/')
+    } catch (err) {
+      setError(err?.detail || 'Login failed. Check your credentials.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -72,8 +78,8 @@ export function LoginPage() {
           <button
             type="submit"
             className="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition"
-          >
-            Login
+           disabled={loading}>
+            {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
 

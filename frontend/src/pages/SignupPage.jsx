@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useStore } from '../store/store'
+import apiClient from '../config/api'
 
 export function SignupPage() {
   const [username, setUsername] = useState('')
@@ -11,7 +12,9 @@ export function SignupPage() {
   const navigate = useNavigate()
   const { setUser, setToken } = useStore()
 
-  const handleSubmit = (e) => {
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
@@ -25,13 +28,22 @@ export function SignupPage() {
       return
     }
 
-    // Simulate signup
-    const mockUser = { id: 1, username, email }
-    const mockToken = 'mock-jwt-token-' + Date.now()
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters')
+      return
+    }
 
-    setUser(mockUser)
-    setToken(mockToken)
-    navigate('/')
+    setLoading(true)
+    try {
+      const res = await apiClient.post('/auth/signup', { username, email, password })
+      setUser(res.user)
+      setToken(res.token)
+      navigate('/')
+    } catch (err) {
+      setError(err?.detail || 'Signup failed. Try a different username/email.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -104,8 +116,8 @@ export function SignupPage() {
           <button
             type="submit"
             className="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition"
-          >
-            Sign Up
+           disabled={loading}>
+            {loading ? 'Creating account...' : 'Sign Up'}
           </button>
         </form>
 

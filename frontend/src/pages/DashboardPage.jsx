@@ -1,16 +1,23 @@
 import { PriceCard } from '../components/PriceCard'
 import { RiskMeter } from '../components/RiskMeter'
 import { SectorHeatmap } from '../components/SectorHeatmap'
-import { useStockPrice } from '../hooks/useStocks'
+import { usePortfolio } from '../hooks/usePortfolio'
+import { useWatchlist } from '../hooks/useStocks'
+import { formatCurrency } from '../utils/formatters'
 
 export function DashboardPage() {
-  const { data: relianceData, isLoading: relianceLoading } = useStockPrice('RELIANCE')
-  const { data: infyData, isLoading: infyLoading } = useStockPrice('INFY')
+  const { data: portfolio, isLoading: pfLoading } = usePortfolio()
+  const { data: watchlist, isLoading: wlLoading } = useWatchlist()
 
-  const topStocks = [
-    { symbol: 'RELIANCE', data: relianceData, loading: relianceLoading },
-    { symbol: 'INFY', data: infyData, loading: infyLoading },
-  ]
+  const holdings = portfolio?.holdings ?? []
+  const totalValue = portfolio?.total_value ?? 0
+  const totalCost = portfolio?.total_cost ?? 0
+  const gainLoss = portfolio?.gain_loss ?? 0
+  const gainPct = totalCost > 0 ? ((gainLoss / totalCost) * 100).toFixed(2) : null
+
+  const topHoldings = [...holdings]
+    .sort((a, b) => (b.current_value ?? 0) - (a.current_value ?? 0))
+    .slice(0, 4)
 
   return (
     <div className="space-y-8">
@@ -24,20 +31,30 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <div className="bg-white rounded-lg shadow p-6">
           <p className="text-sm text-gray-600 mb-2">Portfolio Value</p>
-          <p className="text-3xl font-bold text-blue-600">₹2,50,000</p>
-          <p className="text-sm text-green-600 mt-2">+5.2% today</p>
+          <p className="text-3xl font-bold text-blue-600">
+            {pfLoading ? '…' : formatCurrency(totalValue)}
+          </p>
+          {gainPct !== null && (
+            <p className={`text-sm mt-2 ${gainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {gainLoss >= 0 ? '+' : ''}{gainPct}% overall
+            </p>
+          )}
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">
           <p className="text-sm text-gray-600 mb-2">Total Gain/Loss</p>
-          <p className="text-3xl font-bold text-green-600">₹45,000</p>
+          <p className={`text-3xl font-bold ${gainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {pfLoading ? '…' : formatCurrency(gainLoss)}
+          </p>
           <p className="text-sm text-gray-600 mt-2">Since inception</p>
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">
           <p className="text-sm text-gray-600 mb-2">Holdings</p>
-          <p className="text-3xl font-bold text-blue-600">8</p>
-          <p className="text-sm text-gray-600 mt-2">Stocks & ETFs</p>
+          <p className="text-3xl font-bold text-blue-600">{pfLoading ? '…' : holdings.length}</p>
+          <p className="text-sm text-gray-600 mt-2">
+            {wlLoading ? '' : `${watchlist?.watchlist?.length ?? 0} on watchlist`}
+          </p>
         </div>
       </div>
 
@@ -50,15 +67,17 @@ export function DashboardPage() {
       {/* Top Holdings */}
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Top Holdings</h2>
+        {!pfLoading && topHoldings.length === 0 && (
+          <p className="text-gray-500">No holdings yet — add some from the Portfolio page.</p>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {topStocks.map(stock => (
+          {topHoldings.map(h => (
             <PriceCard
-              key={stock.symbol}
-              symbol={stock.symbol}
-              price={stock.data?.price}
-              change={stock.data?.open ? ((stock.data.price - stock.data.open) / stock.data.open * 100) : 0}
-              loading={stock.loading}
-              prediction={{ signal: 'UP', confidence: 0.68 }}
+              key={h.symbol}
+              symbol={h.symbol}
+              price={h.last_price}
+              change={h.invested > 0 && h.gain_loss !== null ? (h.gain_loss / h.invested) * 100 : 0}
+              loading={pfLoading}
             />
           ))}
         </div>
