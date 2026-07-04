@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { PriceCard } from '../components/PriceCard'
-import { useWatchlist, useAddToWatchlist, useRemoveFromWatchlist, useFetchStockPrice } from '../hooks/useStocks'
+import { useWatchlist, useAddToWatchlist, useRemoveFromWatchlist, useFetchStockPrice, usePrediction } from '../hooks/useStocks'
 
 export function WatchlistPage() {
   const [newSymbol, setNewSymbol] = useState('')
@@ -78,23 +78,36 @@ export function WatchlistPage() {
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {watchlist.map(item => (
-            <div key={item.symbol} className="relative">
-              <PriceCard
-                symbol={item.symbol}
-                price={item.last_price}
-                change={0}
-                loading={false}
-              />
-              <button
-                onClick={() => handleRemove(item.symbol)}
-                className="absolute top-3 right-3 p-2 hover:bg-red-100 rounded-lg transition text-red-600"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
+            <WatchlistCard key={item.symbol} item={item} onRemove={handleRemove} />
           ))}
         </div>
       </div>
+    </div>
+  )
+}
+
+function WatchlistCard({ item, onRemove }) {
+  const { data: prediction } = usePrediction(item.symbol)
+  const hasPrediction = prediction?.status === 'success'
+
+  return (
+    <div className="relative">
+      <PriceCard
+        symbol={item.symbol}
+        price={item.last_price}
+        change={0}
+        loading={false}
+        prediction={hasPrediction ? {
+          signal: prediction.signal,
+          confidence: prediction.confidence ?? 0,
+        } : null}
+      />
+      <button
+        onClick={() => onRemove(item.symbol)}
+        className="absolute top-3 right-3 p-2 hover:bg-red-100 rounded-lg transition text-red-600"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
     </div>
   )
 }

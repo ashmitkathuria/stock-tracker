@@ -43,3 +43,13 @@ export function useTrades() {
     staleTime: 60000,
   })
 }
+
+// Portfolio risk score (0-100) with volatility/concentration breakdown
+export function usePortfolioRisk() {
+  return useQuery({
+    queryKey: ['portfolio', 'risk'],
+    queryFn: () => apiClient.get('/portfolio/risk'),
+    staleTime: 300000,
+    retry: 1,
+  })
+}

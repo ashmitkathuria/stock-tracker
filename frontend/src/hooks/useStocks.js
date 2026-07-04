@@ -74,3 +74,25 @@ export function useRemoveFromWatchlist() {
     }
   })
 }
+
+// Latest ML prediction for a symbol
+export function usePrediction(symbol) {
+  return useQuery({
+    queryKey: ['prediction', symbol],
+    queryFn: () => apiClient.get(`/predictions/${symbol}`),
+    enabled: !!symbol,
+    staleTime: 300000, // 5 minutes
+    retry: 1,
+  })
+}
+
+// Recent news with sentiment for a symbol
+export function useNews(symbol, limit = 10) {
+  return useQuery({
+    queryKey: ['news', symbol, limit],
+    queryFn: () => apiClient.get(`/news/${symbol}`, { params: { limit } }),
+    enabled: !!symbol,
+    staleTime: 300000,
+    retry: 1,
+  })
+}

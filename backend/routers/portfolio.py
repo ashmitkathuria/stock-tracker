@@ -129,3 +129,63 @@ def get_trades(user: User = Depends(get_current_user), db: Session = Depends(get
         "price": float(t.price), "trade_type": t.trade_type,
         "trade_date": t.trade_date.isoformat() if t.trade_date else None,
     } for t in trades]}
+
+
+@router.get("/risk")
+def get_risk(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """
+    Portfolio risk score (0-100) from the value-weighted stdev of holdings'
+    daily returns over the last ~90 days of stored prices, plus a
+    concentration reading (largest holding's share of portfolio value).
+    """
+    import math
+    import statistics
+
+    holdings = db.query(Portfolio).filter(Portfolio.user_id == user.id).all()
+    if not holdings:
+        return {"status": "success", "risk_score": 0, "volatility_pct": 0.0,
+                "concentration_pct": 0.0, "message": "No holdings"}
+
+    cutoff = dt.date.today() - dt.timedelta(days=90)
+    values, vols = {}, {}
+    for h in holdings:
+        last = _latest_close(db, h.symbol)
+        if last is None:
+            continue
+        values[h.symbol] = float(h.quantity) * last
+
+        closes = [float(r.close) for r in (
+            db.query(StockPrice)
+            .filter(StockPrice.symbol == h.symbol, StockPrice.date >= cutoff)
+            .order_by(StockPrice.date)
+            .all()
+        )]
+        if len(closes) >= 3:
+            rets = [(b - a) / a for a, b in zip(closes, closes[1:]) if a]
+            if len(rets) >= 2:
+                vols[h.symbol] = statistics.stdev(rets)
+
+    total_value = sum(values.values())
+    if total_value <= 0:
+        return {"status": "success", "risk_score": 0, "volatility_pct": 0.0,
+                "concentration_pct": 0.0, "message": "No priced holdings"}
+
+    concentration_pct = max(values.values()) / total_value * 100
+
+    weighted_vol = sum(
+        (values[s] / total_value) * vols[s] for s in vols if s in values
+    ) if vols else 0.0
+    annualized_vol_pct = weighted_vol * math.sqrt(252) * 100
+
+    # Map annualized volatility to 0-100 (40%+ annualized => max score),
+    # with a concentration kicker so a one-stock portfolio reads riskier.
+    score = min(100.0, annualized_vol_pct * 2.5)
+    score = min(100.0, score + max(0.0, concentration_pct - 50) * 0.4)
+
+    return {
+        "status": "success",
+        "risk_score": round(score),
+        "volatility_pct": round(annualized_vol_pct, 1),
+        "concentration_pct": round(concentration_pct, 1),
+        "holdings_measured": len(vols),
+    }

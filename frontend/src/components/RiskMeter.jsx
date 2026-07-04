@@ -1,4 +1,4 @@
-export function RiskMeter({ riskScore = 45 }) {
+export function RiskMeter({ riskScore = 0, volatilityPct = null, concentrationPct = null, loading = false }) {
   const getLevel = (score) => {
     if (score < 35) return { label: 'Low', color: 'bg-green-500' }
     if (score < 65) return { label: 'Medium', color: 'bg-yellow-500' }
@@ -44,7 +44,7 @@ export function RiskMeter({ riskScore = 45 }) {
 
         {/* Score */}
         <div className="text-center">
-          <p className="text-4xl font-bold text-blue-600">{riskScore}</p>
+          <p className="text-4xl font-bold text-blue-600">{loading ? '…' : riskScore}</p>
           <p className={`text-sm font-semibold ${
             level.label === 'Low' ? 'text-green-600' :
             level.label === 'Medium' ? 'text-yellow-600' :
@@ -57,12 +57,12 @@ export function RiskMeter({ riskScore = 45 }) {
         {/* Legend */}
         <div className="mt-6 w-full space-y-2 text-sm">
           <div className="flex justify-between text-gray-600">
-            <span>Volatility:</span>
-            <span className="font-semibold">24.5%</span>
+            <span>Volatility (annualized):</span>
+            <span className="font-semibold">{volatilityPct !== null ? `${volatilityPct}%` : '—'}</span>
           </div>
           <div className="flex justify-between text-gray-600">
-            <span>Concentration:</span>
-            <span className="font-semibold">12.3%</span>
+            <span>Concentration (top holding):</span>
+            <span className="font-semibold">{concentrationPct !== null ? `${concentrationPct}%` : '—'}</span>
           </div>
         </div>
       </div>

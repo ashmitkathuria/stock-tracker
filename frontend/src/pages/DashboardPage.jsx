@@ -1,13 +1,16 @@
 import { PriceCard } from '../components/PriceCard'
 import { RiskMeter } from '../components/RiskMeter'
 import { SectorHeatmap } from '../components/SectorHeatmap'
-import { usePortfolio } from '../hooks/usePortfolio'
+import { NewsPanel } from '../components/NewsPanel'
+import { usePortfolio, usePortfolioRisk } from '../hooks/usePortfolio'
 import { useWatchlist } from '../hooks/useStocks'
 import { formatCurrency } from '../utils/formatters'
 
 export function DashboardPage() {
   const { data: portfolio, isLoading: pfLoading } = usePortfolio()
   const { data: watchlist, isLoading: wlLoading } = useWatchlist()
+  const { data: risk, isLoading: riskLoading } = usePortfolioRisk()
+  const watchlistSymbols = (watchlist?.watchlist ?? []).map(w => w.symbol)
 
   const holdings = portfolio?.holdings ?? []
   const totalValue = portfolio?.total_value ?? 0
@@ -60,9 +63,17 @@ export function DashboardPage() {
 
       {/* Risk Meter & Sector */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RiskMeter riskScore={45} />
+        <RiskMeter
+          riskScore={risk?.risk_score ?? 0}
+          volatilityPct={risk?.volatility_pct ?? null}
+          concentrationPct={risk?.concentration_pct ?? null}
+          loading={riskLoading}
+        />
         <SectorHeatmap />
       </div>
+
+      {/* News & Sentiment */}
+      <NewsPanel symbols={watchlistSymbols} />
 
       {/* Top Holdings */}
       <div>
