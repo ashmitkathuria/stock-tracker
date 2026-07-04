@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from config import settings
 from database import init_db, verify_db_connection
 from scheduler import start_scheduler, stop_scheduler
-from routers import health, stocks
+from routers import auth, health, portfolio, stocks, watchlist
 
 # Configure logging
 logging.basicConfig(
@@ -83,6 +83,9 @@ async def shutdown_event():
 
 # Include routers
 app.include_router(health.router)
+app.include_router(auth.router)
+app.include_router(watchlist.router)
+app.include_router(portfolio.router)
 app.include_router(stocks.router)
 
 @app.get("/")
