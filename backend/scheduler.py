@@ -51,24 +51,28 @@ def _watchlist_symbols(db):
     return [s[0] for s in db.query(Watchlist.symbol).distinct().all()]
 
 def scheduled_refresh_predictions():
-    """Daily job: backfill history and refresh ML predictions per watchlist symbol"""
+    """Daily job: inference-only prediction refresh per watchlist symbol
+    (deep-backfills lazily for thin symbols; trains only if no artifact)"""
     db = None
     try:
         logger.info(f"[SCHEDULER] Starting prediction refresh at {datetime.now()}")
         db = SessionLocal()
-        from fetchers.stock_fetcher import backfill_history
-        from ml.predictor import train_and_predict
+        from ml.predictor import _ensure_history, train_and_predict
 
         symbols = _watchlist_symbols(db)
         if not symbols:
             logger.info("[SCHEDULER] No stocks in watchlist, skipping predictions")
             return
 
+        for idx in ("NIFTY50", "INDIAVIX"):
+            try:
+                _ensure_history(db, idx)
+            except Exception as e:
+                logger.error(f"[SCHEDULER] Error backfilling index {idx}: {str(e)}")
+
         for symbol in symbols:
             try:
-                backfill = backfill_history(symbol, "NSE", days=400, db=db)
-                if backfill["status"] != "success":
-                    logger.warning(f"[SCHEDULER] Backfill failed for {symbol}: {backfill.get('message')}")
+                _ensure_history(db, symbol)
                 result = train_and_predict(symbol, db=db)
                 logger.info(f"[SCHEDULER] Prediction {symbol}: {result['status']}")
             except Exception as e:
@@ -80,6 +84,31 @@ def scheduled_refresh_predictions():
     finally:
         if db is not None:
             db.close()
+
+def scheduled_score_outcomes():
+    """Daily job: score yesterday's predictions against realized direction"""
+    try:
+        logger.info(f"[SCHEDULER] Starting outcome scoring at {datetime.now()}")
+        from ml.outcomes import score_pending_outcomes
+        result = score_pending_outcomes()
+        logger.info(f"[SCHEDULER] Outcomes: {result}")
+    except Exception as e:
+        logger.error(f"[SCHEDULER] Error in scheduled_score_outcomes: {str(e)}")
+
+def scheduled_weekly_training():
+    """Weekly job: retrain the global model and refresh the disk artifact"""
+    try:
+        logger.info(f"[SCHEDULER] Starting weekly model training at {datetime.now()}")
+        from ml.predictor import invalidate_model_cache, train_global_model
+        result = train_global_model()
+        if result.get("status") == "success":
+            invalidate_model_cache()
+            logger.info(f"[SCHEDULER] Weekly training done: {result['n_rows']} rows, "
+                        f"{result['seconds']}s, backend={result['backend']}")
+        else:
+            logger.error(f"[SCHEDULER] Weekly training failed: {result.get('message')}")
+    except Exception as e:
+        logger.error(f"[SCHEDULER] Error in scheduled_weekly_training: {str(e)}")
 
 def scheduled_fetch_news():
     """Daily job: fetch and score news per watchlist symbol"""
@@ -145,6 +174,26 @@ def start_scheduler():
             misfire_grace_time=300  # 5 minutes grace
         )
 
+        # Outcome scoring at 16:05 IST (right after prices land)
+        scheduler.add_job(
+            scheduled_score_outcomes,
+            trigger=CronTrigger(hour=16, minute=5, timezone=tz),
+            id="daily_outcome_scoring",
+            name="Daily Prediction Outcome Scorer",
+            replace_existing=True,
+            misfire_grace_time=300
+        )
+
+        # Weekly global model retrain, Sunday 10:00 IST (market closed)
+        scheduler.add_job(
+            scheduled_weekly_training,
+            trigger=CronTrigger(day_of_week="sun", hour=10, minute=0, timezone=tz),
+            id="weekly_model_training",
+            name="Weekly ML Model Training",
+            replace_existing=True,
+            misfire_grace_time=3600
+        )
+
         # Sector performance at 16:15 IST
         scheduler.add_job(
             scheduled_fetch_sectors,
@@ -176,7 +225,7 @@ def start_scheduler():
         )
 
         scheduler.start()
-        logger.info(f"[SCHEDULER] Started with 4 jobs: prices {settings.fetch_stocks_hour}:{settings.fetch_stocks_minute:02d}, sectors 16:15, predictions 16:30, news 17:00 ({settings.fetch_stocks_timezone})")
+        logger.info(f"[SCHEDULER] Started with 6 jobs: prices {settings.fetch_stocks_hour}:{settings.fetch_stocks_minute:02d}, outcomes 16:05, sectors 16:15, predictions 16:30, news 17:00, weekly training Sun 10:00 ({settings.fetch_stocks_timezone})")
 
     except Exception as e:
         logger.error(f"[SCHEDULER] Error starting scheduler: {str(e)}")
