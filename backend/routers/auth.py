@@ -49,3 +49,28 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
 @router.get("/me")
 def me(user: User = Depends(get_current_user)):
     return {"status": "success", "user": _user_out(user)}
+
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+@router.post("/change-password")
+def change_password(
+    body: ChangePasswordRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not verify_password(body.old_password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+    user.password_hash = hash_password(body.new_password)
+    db.commit()
+    return {"status": "success"}
+
+
+@router.delete("/me")
+def delete_account(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    db.delete(user)  # FK cascades remove watchlist/portfolio/trades
+    db.commit()
+    return {"status": "success"}

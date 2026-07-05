@@ -189,3 +189,81 @@ def get_risk(user: User = Depends(get_current_user), db: Session = Depends(get_d
         "concentration_pct": round(concentration_pct, 1),
         "holdings_measured": len(vols),
     }
+
+
+@router.get("/history")
+def get_portfolio_history(
+    days: int = 90,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Reconstruct daily portfolio value for the last `days` days from the
+    user's trade history and stored closing prices. For each day, holdings
+    are the cumulative BUY-SELL quantities up to that day; each symbol is
+    valued at its most recent close on or before that day.
+    """
+    days = max(7, min(days, 365))
+    start = dt.date.today() - dt.timedelta(days=days)
+
+    trades = (
+        db.query(Trade)
+        .filter(Trade.user_id == user.id)
+        .order_by(Trade.trade_date)
+        .all()
+    )
+    if not trades:
+        return {"status": "success", "history": []}
+
+    symbols = sorted({t.symbol for t in trades})
+
+    # Preload prices per symbol: ordered (date, close) from a bit before start.
+    price_map = {}
+    for sym in symbols:
+        rows = (
+            db.query(StockPrice.date, StockPrice.close)
+            .filter(StockPrice.symbol == sym,
+                    StockPrice.date >= start - dt.timedelta(days=30))
+            .order_by(StockPrice.date)
+            .all()
+        )
+        price_map[sym] = [(r.date, float(r.close)) for r in rows]
+
+    def close_on_or_before(sym, day):
+        best = None
+        for d, c in price_map.get(sym, []):
+            if d <= day:
+                best = c
+            else:
+                break
+        return best
+
+    history = []
+    ti = 0
+    qty = {s: 0.0 for s in symbols}
+    # Apply trades before the window first.
+    while ti < len(trades) and trades[ti].trade_date.date() < start:
+        t = trades[ti]
+        qty[t.symbol] += float(t.quantity) if t.trade_type == "BUY" else -float(t.quantity)
+        ti += 1
+
+    day = start
+    today = dt.date.today()
+    while day <= today:
+        while ti < len(trades) and trades[ti].trade_date.date() <= day:
+            t = trades[ti]
+            qty[t.symbol] += float(t.quantity) if t.trade_type == "BUY" else -float(t.quantity)
+            ti += 1
+        value = 0.0
+        priced = False
+        for s in symbols:
+            if qty[s] > 0:
+                c = close_on_or_before(s, day)
+                if c is not None:
+                    value += qty[s] * c
+                    priced = True
+        if priced:
+            history.append({"date": day.isoformat(), "value": round(value, 2)})
+        day += dt.timedelta(days=1)
+
+    return {"status": "success", "history": history}
