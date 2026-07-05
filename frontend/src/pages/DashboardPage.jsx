@@ -6,8 +6,11 @@ import { ModelPerformanceCard } from '../components/ModelPerformanceCard'
 import { usePortfolio, usePortfolioRisk } from '../hooks/usePortfolio'
 import { useWatchlist } from '../hooks/useStocks'
 import { formatCurrency } from '../utils/formatters'
+import { usePageTitle } from '../hooks/usePageTitle'
+import { PortfolioHistoryChart } from '../components/PortfolioHistoryChart'
 
 export function DashboardPage() {
+  usePageTitle('Dashboard')
   const { data: portfolio, isLoading: pfLoading } = usePortfolio()
   const { data: watchlist, isLoading: wlLoading } = useWatchlist()
   const { data: risk, isLoading: riskLoading } = usePortfolioRisk()
@@ -61,6 +64,9 @@ export function DashboardPage() {
           </p>
         </div>
       </div>
+
+      {/* Portfolio value history */}
+      <PortfolioHistoryChart />
 
       {/* Risk Meter & Sector */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
