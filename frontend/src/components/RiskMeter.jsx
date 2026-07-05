@@ -10,7 +10,7 @@ export function RiskMeter({ riskScore = 0, volatilityPct = null, concentrationPc
   const angle = 180 - (riskScore / 100) * 180
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
       <h3 className="font-bold text-lg mb-6">Portfolio Risk</h3>
 
       <div className="flex flex-col items-center">
@@ -44,11 +44,11 @@ export function RiskMeter({ riskScore = 0, volatilityPct = null, concentrationPc
 
         {/* Score */}
         <div className="text-center">
-          <p className="text-4xl font-bold text-blue-600">{loading ? '…' : riskScore}</p>
+          <p className="text-4xl font-bold text-blue-600 dark:text-blue-400">{loading ? '…' : riskScore}</p>
           <p className={`text-sm font-semibold ${
-            level.label === 'Low' ? 'text-green-600' :
+            level.label === 'Low' ? 'text-green-600 dark:text-green-400' :
             level.label === 'Medium' ? 'text-yellow-600' :
-            'text-red-600'
+            'text-red-600 dark:text-red-400'
           }`}>
             {level.label} Risk
           </p>
@@ -56,11 +56,11 @@ export function RiskMeter({ riskScore = 0, volatilityPct = null, concentrationPc
 
         {/* Legend */}
         <div className="mt-6 w-full space-y-2 text-sm">
-          <div className="flex justify-between text-gray-600">
+          <div className="flex justify-between text-gray-600 dark:text-gray-400">
             <span>Volatility (annualized):</span>
             <span className="font-semibold">{volatilityPct !== null ? `${volatilityPct}%` : '—'}</span>
           </div>
-          <div className="flex justify-between text-gray-600">
+          <div className="flex justify-between text-gray-600 dark:text-gray-400">
             <span>Concentration (top holding):</span>
             <span className="font-semibold">{concentrationPct !== null ? `${concentrationPct}%` : '—'}</span>
           </div>

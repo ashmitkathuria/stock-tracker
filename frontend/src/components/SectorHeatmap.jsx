@@ -20,22 +20,22 @@ export function SectorHeatmap() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
       <div className="flex justify-between items-baseline mb-4">
         <h3 className="font-bold text-lg">Sector Performance</h3>
-        {data?.date && <span className="text-xs text-gray-500">{data.date}</span>}
+        {data?.date && <span className="text-xs text-gray-500 dark:text-gray-400">{data.date}</span>}
       </div>
 
       {isLoading && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="bg-gray-100 animate-pulse p-4 rounded-lg h-20" />
+            <div key={i} className="bg-gray-100 dark:bg-gray-700 animate-pulse p-4 rounded-lg h-20" />
           ))}
         </div>
       )}
 
       {!isLoading && sectors.length === 0 && (
-        <p className="text-sm text-gray-500">No sector data yet — it refreshes daily at 16:15 IST.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">No sector data yet — it refreshes daily at 16:15 IST.</p>
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
